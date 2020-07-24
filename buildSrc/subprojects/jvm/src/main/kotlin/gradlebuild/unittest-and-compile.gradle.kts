@@ -25,13 +25,14 @@ import org.gradle.internal.os.OperatingSystem
 import java.util.concurrent.Callable
 import java.util.jar.Attributes
 import com.gradle.enterprise.gradleplugin.testdistribution.TestDistributionPlugin
+import org.gradle.testretry.TestRetryPlugin
 
 plugins {
     groovy
     id("gradlebuild.module-identity")
     id("gradlebuild.dependency-modules")
     id("gradlebuild.available-java-installations")
-    id("org.gradle.test-retry")
+//    id("org.gradle.test-retry")
 }
 
 extensions.create<UnitTestAndCompileExtension>("gradlebuildJava", java)
@@ -192,6 +193,10 @@ fun configureTests() {
         plugins.apply(TestDistributionPlugin::class.java)
     }
 
+    plugins.apply(TestRetryPlugin::class.java)
+
+
+
     tasks.withType<Test>().configureEach {
         maxParallelForks = project.maxParallelForks
 
@@ -206,16 +211,6 @@ fun configureTests() {
 
         val testName = name
 
-        if (!this.javaClass.simpleName.endsWith("PerformanceTest")) {
-            retry {
-                maxRetries.set(1)
-                maxFailures.set(10)
-            }
-            doFirst {
-                logger.lifecycle("maxParallelForks for '$path' is $maxParallelForks")
-            }
-        }
-
         if (project.testDistributionEnabled()) {
             distribution {
                 maxLocalExecutors.set(0)
@@ -226,6 +221,16 @@ fun configureTests() {
                     OperatingSystem.current().isWindows -> requirements.set(listOf("os=windows"))
                     OperatingSystem.current().isMacOsX -> requirements.set(listOf("os=macos"))
                 }
+            }
+        }
+
+        if (!this.javaClass.simpleName.endsWith("PerformanceTest")) {
+            retry {
+                maxRetries.set(1)
+                maxFailures.set(10)
+            }
+            doFirst {
+                logger.lifecycle("maxParallelForks for '$path' is $maxParallelForks")
             }
         }
     }
