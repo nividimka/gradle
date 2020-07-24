@@ -25,7 +25,7 @@ import org.junit.runner.RunWith
 @TargetVersions(['1.0', '2.0'])
 class FlakyTest {
     static version
-    File file = new File("/home/gradle/file")
+    File file = new File("${System.getenv("HOME")}/file")
 
     @Test
     void test() {
