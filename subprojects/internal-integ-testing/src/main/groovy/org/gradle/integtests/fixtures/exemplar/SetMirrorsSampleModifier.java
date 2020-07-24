@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package org.gradle.integtests.fixtures.mirror;
+package org.gradle.integtests.fixtures.exemplar;
 
 import org.gradle.integtests.fixtures.RepoScriptBlockUtil;
 import org.gradle.samples.model.Command;

@@ -25,7 +25,7 @@ import org.gradle.integtests.fixtures.logging.GradleWelcomeOutputNormalizer;
 import org.gradle.integtests.fixtures.logging.NativeComponentReportOutputNormalizer;
 import org.gradle.integtests.fixtures.logging.SampleOutputNormalizer;
 import org.gradle.integtests.fixtures.logging.PlayComponentReportOutputNormalizer;
-import org.gradle.integtests.fixtures.mirror.SetMirrorsSampleModifier;
+import org.gradle.integtests.fixtures.exemplar.SetMirrorsSampleModifier;
 import org.gradle.samples.test.normalizer.FileSeparatorOutputNormalizer;
 import org.gradle.samples.test.normalizer.JavaObjectSerializationOutputNormalizer;
 import org.gradle.samples.test.normalizer.GradleOutputNormalizer;
