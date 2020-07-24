@@ -199,7 +199,7 @@ public abstract class AbstractMultiTestRunner extends Runner implements Filterab
                         for (FeatureInfo feature : allFeatures) {
                             feature.setSkipped(feature.isSkipped() || !execution.isTestEnabled(new TestDescriptionBackedTestDetails(childDescription, feature.getDescription())));
                             final NameProvider<IterationInfo> provider = feature.getIterationNameProvider();
-                            if (provider!=null) {
+                            if (provider != null) {
                                 feature.setIterationNameProvider(new NameProvider<IterationInfo>() {
                                     @Override
                                     public String getName(IterationInfo iterationInfo) {
@@ -299,6 +299,7 @@ public abstract class AbstractMultiTestRunner extends Runner implements Filterab
         public void filter(Filter filter) throws NoTestsRemainException {
             filters.add(filter);
             for (Map.Entry<Description, Description> entry : descriptionTranslations.entrySet()) {
+//                if (!filter.shouldRun(entry.getKey()) && !filter.shouldRun(entry.getValue())) {
                 if (!filter.shouldRun(entry.getKey())) {
                     enabledTests.remove(entry.getValue());
                     disabledTests.remove(entry.getValue());
