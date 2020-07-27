@@ -299,8 +299,8 @@ public abstract class AbstractMultiTestRunner extends Runner implements Filterab
         public void filter(Filter filter) throws NoTestsRemainException {
             filters.add(filter);
             for (Map.Entry<Description, Description> entry : descriptionTranslations.entrySet()) {
-//                if (!filter.shouldRun(entry.getKey()) && !filter.shouldRun(entry.getValue())) {
-                if (!filter.shouldRun(entry.getKey())) {
+                if (!filter.shouldRun(entry.getKey()) && !filter.shouldRun(entry.getValue())) {
+//                if (!filter.shouldRun(entry.getKey())) {
                     enabledTests.remove(entry.getValue());
                     disabledTests.remove(entry.getValue());
                 }
