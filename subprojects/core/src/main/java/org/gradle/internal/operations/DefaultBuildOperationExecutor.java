@@ -97,7 +97,7 @@ public class DefaultBuildOperationExecutor implements BuildOperationExecutor, St
     }
 
     @Override
-    public ExecutingBuildOperation start(final BuildOperationDescriptor.Builder descriptor) {
+    public ExecutingBuildOperation start(BuildOperationDescriptor.Builder descriptor) {
         return start(descriptor, getCurrentBuildOperation());
     }
 
@@ -143,7 +143,7 @@ public class DefaultBuildOperationExecutor implements BuildOperationExecutor, St
         }
     }
 
-    private <O extends BuildOperation> void execute(final O buildOperation, final BuildOperationWorker<O> worker, @Nullable BuildOperationState defaultParent) {
+    private <O extends BuildOperation> void execute(O buildOperation, BuildOperationWorker<O> worker, @Nullable BuildOperationState defaultParent) {
         BuildOperationDescriptor.Builder descriptorBuilder = buildOperation.description();
         execute(descriptorBuilder, defaultParent, (BuildOperationExecution<BuildOperation>) (descriptor, context, listener) -> {
             Throwable failure = null;
@@ -166,7 +166,7 @@ public class DefaultBuildOperationExecutor implements BuildOperationExecutor, St
         });
     }
 
-    private ExecutingBuildOperation start(final BuildOperationDescriptor.Builder descriptorBuilder, @Nullable BuildOperationState defaultParent) {
+    private ExecutingBuildOperation start(BuildOperationDescriptor.Builder descriptorBuilder, @Nullable BuildOperationState defaultParent) {
         return execute(descriptorBuilder, defaultParent, (BuildOperationExecution<ExecutingBuildOperation>) (descriptor, context, listener) -> {
             listener.start();
             return new ExecutingBuildOperation() {
@@ -215,21 +215,21 @@ public class DefaultBuildOperationExecutor implements BuildOperationExecutor, St
         });
     }
 
-    private <O extends BuildOperation> O execute(final BuildOperationDescriptor.Builder descriptorBuilder, @Nullable BuildOperationState defaultParent, BuildOperationExecution<O> execution) {
-        final BuildOperationState parent = determineParent(descriptorBuilder, defaultParent);
+    private <O extends BuildOperation> O execute(BuildOperationDescriptor.Builder descriptorBuilder, @Nullable BuildOperationState defaultParent, BuildOperationExecution<O> execution) {
+        BuildOperationState parent = determineParent(descriptorBuilder, defaultParent);
 
-        final BuildOperationDescriptor descriptor = createDescriptor(descriptorBuilder, parent);
-        final BuildOperationState newOperation = new BuildOperationState(descriptor, clock.getCurrentTime());
+        BuildOperationDescriptor descriptor = createDescriptor(descriptorBuilder, parent);
+        BuildOperationState newOperation = new BuildOperationState(descriptor, clock.getCurrentTime());
 
         assertParentRunning("Cannot start operation (%s) as parent operation (%s) has already completed.", descriptor, parent);
 
         newOperation.setRunning(true);
 
-        final BuildOperationState parentOperation = getCurrentBuildOperation();
+        BuildOperationState parentOperation = getCurrentBuildOperation();
         setCurrentBuildOperation(newOperation);
 
-        final MutableReference<ProgressLogger> progressLoggerHolder = MutableReference.empty();
-        final DefaultBuildOperationContext context = new DefaultBuildOperationContext();
+        MutableReference<ProgressLogger> progressLoggerHolder = MutableReference.empty();
+        DefaultBuildOperationContext context = new DefaultBuildOperationContext();
 
         return execution.execute(
             descriptor,
