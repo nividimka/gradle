@@ -36,7 +36,9 @@ import org.gradle.internal.serialize.Decoder
 import org.gradle.internal.serialize.Encoder
 import kotlin.coroutines.Continuation
 import kotlin.coroutines.CoroutineContext
+import kotlin.coroutines.EmptyCoroutineContext
 import kotlin.coroutines.coroutineContext
+import kotlin.coroutines.resume
 import kotlin.coroutines.startCoroutine
 import kotlin.coroutines.suspendCoroutine
 
@@ -100,7 +102,7 @@ class DefaultWriteContext(
             }
             pendingWriteCall === null -> {
                 pendingWriteCall = WriteCall(value, null)
-                writeCallLoop(coroutineContext)
+                writeCallLoop()
             }
             else -> suspendCoroutine<Unit> { k ->
                 pendingWriteCall = WriteCall(value, k)
@@ -109,23 +111,28 @@ class DefaultWriteContext(
     }
 
     private
-    fun writeCallLoop(coroutineContext: CoroutineContext) {
+    fun writeCallLoop() {
+        @Suppress("unchecked_cast")
+        val unsafeWrite = (::stackUnsafeWrite) as Function2<Any?, Continuation<Unit>, Any>
         do {
             val call = pendingWriteCall!!
-            suspend {
-                stackUnsafeWrite(call.value)
-            }.startCoroutine(
-                Continuation(coroutineContext) {
-                    when (val k = call.k) {
-                        null -> {
-                            pendingWriteCall = null
-                            it.getOrThrow()
-                        }
-                        else -> k.resumeWith(it)
-                    }
-                }
-            )
+            val result = unsafeWrite.invoke(call.value, continuation)
+            if (result !== kotlin.coroutines.intrinsics.COROUTINE_SUSPENDED) {
+                call.k!!.resume(Unit)
+            }
         } while (pendingWriteCall !== null)
+    }
+
+    private
+    val continuation = object : Continuation<Unit> {
+
+        override val context: CoroutineContext
+            get() = EmptyCoroutineContext
+
+        override fun resumeWith(result: Result<Unit>) {
+            pendingWriteCall = null
+            result.getOrThrow()
+        }
     }
 
     private
