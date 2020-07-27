@@ -32,10 +32,12 @@ public abstract class AbstractBuildOperationRunner implements BuildOperationRunn
     protected final Clock clock;
     protected final RunnableBuildOperationWorker runnableBuildOperationWorker = new RunnableBuildOperationWorker();
     private final CurrentBuildOperationRef currentBuildOperationRef = CurrentBuildOperationRef.instance();
+    private final BuildOperationIdFactory buildOperationIdFactory;
 
-    public AbstractBuildOperationRunner(BuildOperationListener listener, Clock clock) {
+    public AbstractBuildOperationRunner(BuildOperationListener listener, Clock clock, BuildOperationIdFactory buildOperationIdFactory) {
         this.listener = listener;
         this.clock = clock;
+        this.buildOperationIdFactory = buildOperationIdFactory;
     }
 
     @Override
@@ -198,7 +200,10 @@ public abstract class AbstractBuildOperationRunner implements BuildOperationRunn
         return parent;
     }
 
-    abstract protected BuildOperationDescriptor createDescriptor(BuildOperationDescriptor.Builder descriptorBuilder, BuildOperationState parent);
+    protected BuildOperationDescriptor createDescriptor(BuildOperationDescriptor.Builder descriptorBuilder, @Nullable BuildOperationState parent) {
+        OperationIdentifier id = new OperationIdentifier(buildOperationIdFactory.nextId());
+        return descriptorBuilder.build(id, parent == null ? null : parent.getDescription().getId());
+    }
 
     protected BuildOperationState getCurrentBuildOperation() {
         return (BuildOperationState) currentBuildOperationRef.get();
