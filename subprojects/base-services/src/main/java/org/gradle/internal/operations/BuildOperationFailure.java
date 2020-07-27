@@ -16,7 +16,9 @@
 
 package org.gradle.internal.operations;
 
-public class BuildOperationFailure extends RuntimeException {
+import org.gradle.api.GradleException;
+
+public class BuildOperationFailure extends GradleException {
     private final BuildOperation operation;
 
     protected BuildOperationFailure(BuildOperation operation) {
