@@ -16,6 +16,7 @@
 
 package org.gradle.internal.operations;
 
+import org.gradle.internal.UncheckedException;
 import org.gradle.internal.time.Clock;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -29,11 +30,89 @@ public abstract class AbstractBuildOperationRunner implements BuildOperationRunn
 
     protected final BuildOperationListener listener;
     protected final Clock clock;
+    protected final RunnableBuildOperationWorker runnableBuildOperationWorker = new RunnableBuildOperationWorker();
     private final CurrentBuildOperationRef currentBuildOperationRef = CurrentBuildOperationRef.instance();
 
     public AbstractBuildOperationRunner(BuildOperationListener listener, Clock clock) {
         this.listener = listener;
         this.clock = clock;
+    }
+
+    @Override
+    public void run(RunnableBuildOperation buildOperation) {
+        execute(buildOperation, runnableBuildOperationWorker, getCurrentBuildOperation());
+    }
+
+    protected <O extends BuildOperation> void execute(O buildOperation, BuildOperationWorker<O> worker, @Nullable BuildOperationState defaultParent) {
+        BuildOperationDescriptor.Builder descriptorBuilder = buildOperation.description();
+        execute(descriptorBuilder, defaultParent, (BuildOperationExecution<BuildOperation>) (descriptor, operationState, context, listener) -> {
+            Throwable failure = null;
+            try {
+                listener.start(operationState);
+                try {
+                    worker.execute(buildOperation, context);
+                } catch (Throwable t) {
+                    context.thrown(t);
+                    failure = t;
+                }
+                listener.stop(operationState, context);
+                if (failure != null) {
+                    throw UncheckedException.throwAsUncheckedException(failure, true);
+                }
+                return buildOperation;
+            } finally {
+                listener.close(operationState);
+            }
+        });
+    }
+
+    protected ExecutingBuildOperation start(BuildOperationDescriptor.Builder descriptorBuilder, @Nullable BuildOperationState defaultParent) {
+        return execute(descriptorBuilder, defaultParent, (BuildOperationExecution<ExecutingBuildOperation>) (descriptor, operationState, context, listener) -> {
+            listener.start(operationState);
+            return new ExecutingBuildOperation() {
+                private boolean finished;
+
+                @Override
+                public BuildOperationDescriptor.Builder description() {
+                    return descriptorBuilder;
+                }
+
+                @Override
+                public void failed(@Nullable Throwable failure) {
+                    assertNotFinished();
+                    context.failed(failure);
+                    finish();
+                }
+
+                @Override
+                public void setResult(Object result) {
+                    assertNotFinished();
+                    context.setResult(result);
+                    finish();
+                }
+
+                @Override
+                public void setStatus(String status) {
+                    assertNotFinished();
+                    context.setStatus(status);
+                }
+
+                private void finish() {
+                    finished = true;
+                    try {
+                        listener.stop(operationState, context);
+                    } finally {
+                        listener.close(operationState);
+                    }
+                }
+
+                private void assertNotFinished() {
+                    if (finished) {
+                        throw new IllegalStateException(String.format("Operation (%s) has already finished.", descriptor));
+                    }
+                }
+            };
+        });
     }
 
     protected <O extends BuildOperation> O execute(BuildOperationDescriptor.Builder descriptorBuilder, @Nullable BuildOperationState defaultParent, BuildOperationExecution<O> execution) {
@@ -68,6 +147,18 @@ public abstract class AbstractBuildOperationRunner implements BuildOperationRunn
                 LOGGER.debug("Build operation '{}' completed", descriptor.getDisplayName());
             }
         });
+    }
+
+    @Override
+    public <T> T call(CallableBuildOperation<T> buildOperation) {
+        CallableBuildOperationWorker<T> worker = new CallableBuildOperationWorker<>();
+        execute(buildOperation, worker, getCurrentBuildOperation());
+        return worker.getReturnValue();
+    }
+
+    @Override
+    public ExecutingBuildOperation start(BuildOperationDescriptor.Builder descriptor) {
+        return start(descriptor, getCurrentBuildOperation());
     }
 
     protected <O extends BuildOperation> O execute(BuildOperationDescriptor descriptor, BuildOperationState operationState, BuildOperationExecution<O> execution, BuildOperationExecutionListener listener) {
@@ -190,6 +281,36 @@ public abstract class AbstractBuildOperationRunner implements BuildOperationRunn
 
         private Object writeReplace() throws ObjectStreamException {
             return new DefaultBuildOperationRef(description.getId(), description.getParentId());
+        }
+    }
+
+    protected static class RunnableBuildOperationWorker implements BuildOperationWorker<RunnableBuildOperation> {
+        @Override
+        public String getDisplayName() {
+            return "runnable build operation";
+        }
+
+        @Override
+        public void execute(RunnableBuildOperation buildOperation, BuildOperationContext context) {
+            buildOperation.run(context);
+        }
+    }
+
+    protected static class CallableBuildOperationWorker<T> implements BuildOperationWorker<CallableBuildOperation<T>> {
+        private T returnValue;
+
+        @Override
+        public String getDisplayName() {
+            return "callable build operation";
+        }
+
+        @Override
+        public void execute(CallableBuildOperation<T> buildOperation, BuildOperationContext context) {
+            returnValue = buildOperation.call(context);
+        }
+
+        public T getReturnValue() {
+            return returnValue;
         }
     }
 }
