@@ -19,6 +19,9 @@ package org.gradle.internal.typeconversion;
 import org.gradle.cache.internal.CrossBuildInMemoryCache;
 import org.gradle.internal.exceptions.DiagnosticsVisitor;
 
+/**
+ * A {@link NotationConverter} that caches the result of conversion across build invocations.
+ */
 public class CrossBuildCachingNotationConverter<T> implements NotationConverter<Object, T> {
     private final CrossBuildInMemoryCache<Object, T> cache;
     private final NotationConverterToNotationParserAdapter<Object, T> delegate;
