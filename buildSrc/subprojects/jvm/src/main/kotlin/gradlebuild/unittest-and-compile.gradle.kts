@@ -213,8 +213,8 @@ fun configureTests() {
 
         if (project.testDistributionEnabled()) {
             distribution {
-                maxLocalExecutors.set(0)
-                maxRemoteExecutors.set(if ("test" == testName) 5 else 20)
+                maxLocalExecutors.set(1)
+                maxRemoteExecutors.set(0) //if ("test" == testName) 5 else 20)
                 enabled.set(true)
                 when {
                     OperatingSystem.current().isLinux -> requirements.set(listOf("os=linux"))
