@@ -220,30 +220,30 @@ public class DefaultBuildOperationExecutor extends AbstractBuildOperationRunner 
         BuildOperationDescriptor descriptor = createDescriptor(descriptorBuilder, parent);
 
         assertParentRunning("Cannot start operation (%s) as parent operation (%s) has already completed.", descriptor, parent);
-        BuildOperationState newOperation = new BuildOperationState(descriptor, clock.getCurrentTime());
-        newOperation.setRunning(true);
+        BuildOperationState operationState = new BuildOperationState(descriptor, clock.getCurrentTime());
+        operationState.setRunning(true);
 
         BuildOperationState parentOperation = getCurrentBuildOperation();
-        setCurrentBuildOperation(newOperation);
+        setCurrentBuildOperation(operationState);
 
-        return execute0(descriptor, newOperation, execution, new BuildOperationExecutionListener() {
+        return execute0(descriptor, operationState, execution, new BuildOperationExecutionListener() {
             @Override
             public void start() {
-                listener.started(descriptor, new OperationStartEvent(newOperation.getStartTime()));
+                listener.started(descriptor, new OperationStartEvent(operationState.getStartTime()));
                 LOGGER.debug("Build operation '{}' started", descriptor.getDisplayName());
             }
 
             @Override
             public void stop(DefaultBuildOperationContext context) {
                 LOGGER.debug("Completing Build operation '{}'", descriptor.getDisplayName());
-                listener.finished(descriptor, new OperationFinishEvent(newOperation.getStartTime(), clock.getCurrentTime(), context.failure, context.result));
+                listener.finished(descriptor, new OperationFinishEvent(operationState.getStartTime(), clock.getCurrentTime(), context.failure, context.result));
                 assertParentRunning("Parent operation (%2$s) completed before this operation (%1$s).", descriptor, parent);
             }
 
             @Override
             public void close() {
                 setCurrentBuildOperation(parentOperation);
-                newOperation.setRunning(false);
+                operationState.setRunning(false);
                 LOGGER.debug("Build operation '{}' completed", descriptor.getDisplayName());
             }
         });
